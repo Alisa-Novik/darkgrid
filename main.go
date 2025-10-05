@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"adagrad/internal/game"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
@@ -42,12 +43,12 @@ func main() {
 		log.Fatal(err)
 	}
 	win.MakeContextCurrent()
-	game := NewGame(worldWidth, worldHeight)
+	world := game.NewGame(worldWidth, worldHeight)
 	win.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
 	win.SetScrollCallback(onScroll)
 	win.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
 		if button == glfw.MouseButtonLeft && action == glfw.Press {
-			game.SelectTile(hoverX, hoverZ)
+			world.SelectTile(hoverX, hoverZ)
 		}
 	})
 	if err := gl.Init(); err != nil {
@@ -67,7 +68,7 @@ func main() {
 
 	planeVAO, planeEBO, planeCount := makeIndexedMesh(planeVertices(), planeIndices())
 	cubeVAO, cubeEBO, cubeCount := makeIndexedMesh(cubeVertices(), cubeIndices())
-	gridVAO, gridCount := makeGridLines(game.Width(), game.Height())
+	gridVAO, gridCount := makeGridLines(world.Width(), world.Height())
 
 	mvpLoc := gl.GetUniformLocation(prog, gl.Str("mvp\x00"))
 	colorLoc := gl.GetUniformLocation(prog, gl.Str("color\x00"))
@@ -80,8 +81,8 @@ func main() {
 		dt := float32(now.Sub(prev).Seconds())
 		prev = now
 
-		tiles := game.Tiles()
-		selX, selZ := game.SelectedTile()
+		tiles := world.Tiles()
+		selX, selZ := world.SelectedTile()
 
 		fbw, fbh := win.GetFramebufferSize()
 		gl.Viewport(0, 0, int32(fbw), int32(fbh))
@@ -99,7 +100,7 @@ func main() {
 		if p, ok := RayHitY0(orig, dir); ok {
 			hx := int(math.Floor(float64(p.X())))
 			hz := int(math.Floor(float64(p.Z())))
-			if game.InBounds(hx, hz) {
+			if world.InBounds(hx, hz) {
 				hoverX, hoverZ = hx, hz
 			}
 		}
@@ -108,8 +109,8 @@ func main() {
 		gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
 		gl.Uniform3f(colorLoc, 0.20, 0.22, 0.26)
 		gl.BindVertexArray(planeVAO)
-		for z := 0; z < game.Height(); z++ {
-			for x := 0; x < game.Width(); x++ {
+		for z := 0; z < world.Height(); z++ {
+			for x := 0; x < world.Width(); x++ {
 				model := mgl32.Translate3D(float32(x), 0, float32(z))
 				mvp := vp.Mul4(model)
 				gl.UniformMatrix4fv(mvpLoc, 1, false, &mvp[0])
@@ -136,8 +137,8 @@ func main() {
 
 		gl.Uniform3f(colorLoc, 0.75, 0.75, 0.78)
 		gl.BindVertexArray(cubeVAO)
-		for z := 0; z < game.Height(); z++ {
-			for x := 0; x < game.Width(); x++ {
+		for z := 0; z < world.Height(); z++ {
+			for x := 0; x < world.Width(); x++ {
 				if tiles[z][x] == 1 {
 					if x == hoverX && z == hoverZ {
 						gl.Uniform3f(colorLoc, 1.0, 0.8, 0.2)

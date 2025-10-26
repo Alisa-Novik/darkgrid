@@ -13,7 +13,8 @@ import (
 )
 
 var AppWindow *glfw.Window
-var Controls *ControlState
+var Controls *ControlState = &ControlState{}
+
 var (
 	worldUp                = mgl32.Vec3{0, 1, 0}
 	yaw            float32 = 45
@@ -54,7 +55,6 @@ func Prepare() error {
 	if err := glfw.Init(); err != nil {
 		return fmt.Errorf("init glfw: %w", err)
 	}
-	defer glfw.Terminate()
 
 	width := core.Width
 	height := core.Height
@@ -64,6 +64,7 @@ func Prepare() error {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 	win, err := glfw.CreateWindow(1280, 800, "Sentient Dungeon RTS", nil, nil)
+	AppWindow = win
 	if err != nil {
 		return fmt.Errorf("create window: %w", err)
 	}

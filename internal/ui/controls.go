@@ -3,11 +3,8 @@ package ui
 import "adagrad/internal/core"
 
 type ControlState struct {
-	Dragging         bool
-	selectedX        int
-	selectedZ        int
-	LeftCtrlPressed  bool
-	LeftShiftPressed bool
+	selectedX int
+	selectedZ int
 }
 
 func (ct *ControlState) SelectTile(x, z int) {

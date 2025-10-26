@@ -19,6 +19,20 @@ func NewGame(width, height int) *Game {
 	}
 }
 
+func (gm *Game) Run() {
+	ui.Prepare()
+
+	prev := time.Now()
+	for !ui.ShouldClose() {
+		now := time.Now()
+		dt := float32(now.Sub(prev).Seconds())
+		prev = now
+
+		tiles := gm.Tiles()
+		ui.Render(dt, tiles)
+	}
+}
+
 func (g *Game) Tiles() [][]int {
 	return g.tiles
 }
@@ -70,16 +84,3 @@ func makeMap(w, h int) [][]int {
 	return m
 }
 
-func (gm *Game) Run() {
-	ui.Prepare()
-
-	prev := time.Now()
-	for !ui.ShouldClose() {
-		now := time.Now()
-		dt := float32(now.Sub(prev).Seconds())
-		prev = now
-
-		tiles := gm.Tiles()
-		ui.Render(dt, tiles)
-	}
-}

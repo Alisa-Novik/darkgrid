@@ -6,6 +6,8 @@ import (
 	// "adagrad/internal/ui"
 	"adagrad/internal/core"
 	"adagrad/internal/game"
+
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 func main() {
@@ -13,8 +15,9 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 	//
-	log.Fatal("Starting Game")
+	log.Printf("Starting Game")
 	game := game.NewGame(core.Width, core.Height)
-	log.Fatal("Game")
+	log.Printf("Game")
+	defer glfw.Terminate()
 	game.Run()
 }

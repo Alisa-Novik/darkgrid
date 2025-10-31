@@ -13,7 +13,7 @@ import (
 )
 
 var AppWindow *glfw.Window
-var Controls *ControlState = &ControlState{}
+var Controls *ControlState = NewControlState()
 
 var (
 	worldUp                = mgl32.Vec3{0, 1, 0}
@@ -71,13 +71,6 @@ func Prepare() error {
 	win.MakeContextCurrent()
 	win.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
 	win.SetScrollCallback(onScroll)
-
-	win.SetCursorPosCallback(func(w *glfw.Window, xpos float64, ypos float64) {
-		if Controls.SelectedTile.InBounds() {
-			tile := core.NewTile(int(xpos), int(ypos))
-			Controls.UpdateRect(tile)
-		}
-	})
 
 	win.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
 		hovered := core.NewTile(hoverX, hoverZ)
@@ -150,20 +143,25 @@ func Render(dt float32, tiles [][]int) {
 		}
 	}
 
+	if Controls.SelectedTile.InBounds() && hoverX >= 0 && hoverZ >= 0 {
+		Controls.UpdateRect(core.NewTile(hoverX, hoverZ))
+	}
+
 	width := core.Width
 	height := core.Height
 
 	gl.UseProgram(Prog)
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
-	gl.Uniform3f(ColorLoc, 0.20, 0.22, 0.26)
 	gl.BindVertexArray(PlaneVAO)
 	for z := range height {
 		for x := range width {
 			model := mgl32.Translate3D(float32(x), 0, float32(z))
+			colorR, colorG, colorB := float32(0.20), float32(0.22), float32(0.26)
 			if Controls.IsInRect(x, z) {
-				model = mgl32.Translate3D(float32(hoverX), 0.01, float32(hoverZ))
-				gl.Uniform3f(ColorLoc, 1.0, 0.6, 0.1)
+				model = mgl32.Translate3D(float32(x), 0.01, float32(z))
+				colorR, colorG, colorB = 0.2, 0.6, 0.1
 			}
+			gl.Uniform3f(ColorLoc, colorR, colorG, colorB)
 			mvp := vp.Mul4(model)
 			gl.UniformMatrix4fv(MVPLoc, 1, false, &mvp[0])
 			gl.DrawElements(gl.TRIANGLES, PlaneCount, gl.UNSIGNED_INT, gl.PtrOffset(0))
@@ -172,7 +170,7 @@ func Render(dt float32, tiles [][]int) {
 
 	if hoverX >= 0 && hoverZ >= 0 {
 		gl.Uniform3f(ColorLoc, 1.0, 1.0, 0.0)
-		model := mgl32.Translate3D(float32(hoverX), 0.01, float32(hoverZ))
+		model := mgl32.Translate3D(float32(hoverX), 0.02, float32(hoverZ))
 		mvp := vp.Mul4(model)
 		gl.UniformMatrix4fv(MVPLoc, 1, false, &mvp[0])
 		gl.BindVertexArray(PlaneVAO)
@@ -186,8 +184,6 @@ func Render(dt float32, tiles [][]int) {
 			if tiles[z][x] == 1 {
 				if x == hoverX && z == hoverZ {
 					gl.Uniform3f(ColorLoc, 1.0, 0.8, 0.2)
-				} else if Controls.IsInRect(x, z) {
-					gl.Uniform3f(ColorLoc, 1.0, 0.6, 0.1)
 				} else {
 					gl.Uniform3f(ColorLoc, 0.75, 0.75, 0.78)
 				}

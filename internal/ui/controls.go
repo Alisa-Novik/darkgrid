@@ -3,20 +3,23 @@ package ui
 import "adagrad/internal/core"
 
 type ControlState struct {
-	selectedX int
-	selectedZ int
+	SelectedTile       core.Tile
+	RectStart, RectEnd core.Tile
 }
 
-func (ct *ControlState) SelectTile(x, z int) {
-	if !core.InBounds(x, z) {
-		ct.selectedX = -1
-		ct.selectedZ = -1
-		return
-	}
-	ct.selectedX = x
-	ct.selectedZ = z
+func (ct *ControlState) BeginRect(tile core.Tile) {
+	ct.RectStart = tile
 }
 
-func (ct *ControlState) SelectedTile() (int, int) {
-	return ct.selectedX, ct.selectedZ
+func (ct *ControlState) EndRect(tile core.Tile) {
+	ct.RectEnd = tile
+}
+
+func (ct *ControlState) UpdateRect(tile core.Tile) {
+	ct.RectEnd = tile
+}
+
+func (ct *ControlState) IsInRect(tileX, tileZ int) bool {
+	return tileX >= ct.RectStart.X && tileX <= ct.RectEnd.X &&
+		tileZ >= ct.RectStart.Z && tileZ <= ct.RectEnd.Z
 }

@@ -83,4 +83,3 @@ func makeMap(w, h int) [][]int {
 	}
 	return m
 }
-

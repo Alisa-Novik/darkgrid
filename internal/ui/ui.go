@@ -72,9 +72,22 @@ func Prepare() error {
 	win.SetInputMode(glfw.CursorMode, glfw.CursorNormal)
 	win.SetScrollCallback(onScroll)
 
+	win.SetCursorPosCallback(func(w *glfw.Window, xpos float64, ypos float64) {
+		if Controls.SelectedTile.InBounds() {
+			tile := core.NewTile(int(xpos), int(ypos))
+			Controls.UpdateRect(tile)
+		}
+	})
+
 	win.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
-		if button == glfw.MouseButtonLeft && action == glfw.Press {
-			Controls.SelectTile(hoverX, hoverZ)
+		hovered := core.NewTile(hoverX, hoverZ)
+		if button == glfw.MouseButtonLeft {
+			switch action {
+			case glfw.Press:
+				Controls.BeginRect(hovered)
+			case glfw.Release:
+				Controls.EndRect(hovered)
+			}
 		}
 	})
 
@@ -139,7 +152,6 @@ func Render(dt float32, tiles [][]int) {
 
 	width := core.Width
 	height := core.Height
-	selX, selZ := Controls.SelectedTile()
 
 	gl.UseProgram(Prog)
 	gl.PolygonMode(gl.FRONT_AND_BACK, gl.FILL)
@@ -148,6 +160,10 @@ func Render(dt float32, tiles [][]int) {
 	for z := range height {
 		for x := range width {
 			model := mgl32.Translate3D(float32(x), 0, float32(z))
+			if Controls.IsInRect(x, z) {
+				model = mgl32.Translate3D(float32(hoverX), 0.01, float32(hoverZ))
+				gl.Uniform3f(ColorLoc, 1.0, 0.6, 0.1)
+			}
 			mvp := vp.Mul4(model)
 			gl.UniformMatrix4fv(MVPLoc, 1, false, &mvp[0])
 			gl.DrawElements(gl.TRIANGLES, PlaneCount, gl.UNSIGNED_INT, gl.PtrOffset(0))
@@ -162,14 +178,6 @@ func Render(dt float32, tiles [][]int) {
 		gl.BindVertexArray(PlaneVAO)
 		gl.DrawElements(gl.TRIANGLES, PlaneCount, gl.UNSIGNED_INT, gl.PtrOffset(0))
 	}
-	if selX >= 0 && selZ >= 0 {
-		gl.Uniform3f(ColorLoc, 1.0, 0.6, 0.1)
-		model := mgl32.Translate3D(float32(selX), 0.02, float32(selZ))
-		mvp := vp.Mul4(model)
-		gl.UniformMatrix4fv(MVPLoc, 1, false, &mvp[0])
-		gl.BindVertexArray(PlaneVAO)
-		gl.DrawElements(gl.TRIANGLES, PlaneCount, gl.UNSIGNED_INT, gl.PtrOffset(0))
-	}
 
 	gl.Uniform3f(ColorLoc, 0.75, 0.75, 0.78)
 	gl.BindVertexArray(CubeVAO)
@@ -178,7 +186,7 @@ func Render(dt float32, tiles [][]int) {
 			if tiles[z][x] == 1 {
 				if x == hoverX && z == hoverZ {
 					gl.Uniform3f(ColorLoc, 1.0, 0.8, 0.2)
-				} else if x == selX && z == selZ {
+				} else if Controls.IsInRect(x, z) {
 					gl.Uniform3f(ColorLoc, 1.0, 0.6, 0.1)
 				} else {
 					gl.Uniform3f(ColorLoc, 0.75, 0.75, 0.78)
@@ -227,10 +235,10 @@ func updateRTSCamera(win *glfw.Window, dt float32) {
 		center = center.Add(forward.Mul(move))
 	}
 	if win.GetKey(glfw.KeyA) == glfw.Press || win.GetKey(glfw.KeyLeft) == glfw.Press {
-		center = center.Sub(right.Mul(move))
+		center = center.Add(right.Mul(move))
 	}
 	if win.GetKey(glfw.KeyD) == glfw.Press || win.GetKey(glfw.KeyRight) == glfw.Press {
-		center = center.Add(right.Mul(move))
+		center = center.Sub(right.Mul(move))
 	}
 	rotSpeed := float32(60) * dt
 	if win.GetKey(glfw.KeyQ) == glfw.Press {
